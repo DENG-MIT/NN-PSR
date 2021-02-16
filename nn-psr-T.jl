@@ -12,10 +12,10 @@ using Flux.Losses: mae, mse
 using BSON: @save, @load
 using DelimitedFiles
 
-is_restart = false;
-n_epoch = 10000;
-batch_size = 500;
-n_plot = 1;
+is_restart = true;
+n_epoch = 100000;
+batch_size = 128;
+n_plot = 10;
 
 opt = ADAMW(0.001, (0.9, 0.999), 1.f-6);
 
@@ -35,15 +35,15 @@ tspan = (0.0, tsteps[end]);
 ns = size(ylabel)[1];
 ntotal = size(ylabel)[2];
 batch_size = minimum([batch_size, ntotal]);
-varnames = ["H2", "CO", "CH4", "O2", "N2", "CO2"];
+varnames = ["T", "H2", "CO", "CH4", "O2", "N2", "CO2"];
 
 ymax = maximum(ylabel, dims=2);
 ymin = minimum(ylabel, dims=2);
 
 ymean = mean(ylabel, dims=2);
-ystd = std(ylabel, dims=2);
+ystd = std(ylabel, dims=2) .+ 1e-3;
 
-yscale = ymax - ymin;
+yscale = ymax - ymin .+ 1e-3;
 normdata = (ylabel .- ymin) ./ yscale;
 
 # normdata = @. log(ylabel + llb);
@@ -51,26 +51,27 @@ normdata = (ylabel .- ymin) ./ yscale;
 
 u0 = ylabel[:, 1];
 
-nr = 4
+nr = 6
 dudt2 = Chain(x -> x,
-            Dense(ns, ns * nr, relu),
-            Dense(ns * nr, ns * nr, relu),
-            Dense(ns * nr, ns * nr, relu),
+            Dense(ns, ns * nr, gelu),
+            Dense(ns * nr, ns * nr, gelu),
+            # Dense(ns * nr, ns * nr, gelu),
+            # Dense(ns * nr, ns * nr, gelu),
             Dense(ns * nr, ns + 1))
 
 p, re = Flux.destructure(dudt2);
 
 uin = readdlm("cantera/TYin.txt");
 Q = 8.e2;
-t_cycle = 1e3;
+t_cycle = 1e1;
 Ta = 760;
 tres = 1.0;
 
 function dudt!(du, u, p, t)
 
-    nnout = re(p)((u .- ymean) ./ ystd)
-    TYdot = nnout[1:ns] / t_cycle
-    rhocp = abs(nnout[ns + 1]) + 100
+    nnout = re(p)(( (u .- ymean) ./ ystd))
+    TYdot = nnout[1:ns] .* yscale / t_cycle
+    rhocp = abs(nnout[ns + 1]) * 100 + 220
 
     dT = (uin[1] - u[1]) / tres + TYdot[1] + Q * (Ta - u[1]) / rhocp
     dY = (uin[2:end] - u[2:end]) / tres + TYdot[2:end]
@@ -93,6 +94,7 @@ pred = predict_n_ode(p, ntotal)
 function loss_n_ode(p, sample)
     pred = predict_n_ode(p, sample)
     loss = mae(pred[1, :], Tlist[1:size(pred)[2]])
+    # loss = mae(pred[:, :] ./ yscale, ylabel[:, 1:size(pred)[2]] ./ yscale)
     return loss
 end
 loss_n_ode(p, ntotal)
@@ -100,12 +102,12 @@ loss_n_ode(p, ntotal)
 list_loss = []
 list_grad = []
 iter = 1
-cb = function (p, loss_mean, g_norm; doplot=true)
+cb = function (p, loss_mean, g_norm; doplot=false)
     global list_loss, list_grad, iter
     push!(list_loss, loss_mean)
     push!(list_grad, g_norm)
 
-    if doplot & iter % n_plot == 0
+    if doplot & (iter % n_plot == 0)
         pred = predict_n_ode(p, ntotal)
 
         list_plt = []
@@ -157,20 +159,19 @@ for epoch in epochs
     update!(opt, p, grad)
     
     set_description(epochs, string(@sprintf("Loss: %.4e grad: %.2e", loss, grad_norm)))
-    cb(p, loss, grad_norm)
+    cb(p, loss, grad_norm; doplot=true)
 end
 
 
+function f(p)
+    return loss_n_ode(p, ntotal)
+end
 
-# function f(p)
-#     return loss_n_ode(p, ntotal)
-# end
-
-# function g!(G, p)
-#     # G .= ForwardDiff.gradient(f, x);
-#     loss, back = Zygote.pullback(x -> f(x), p)
-#     G .= back(one(loss))[1]
-# end
+function g!(G, p)
+    # G .= ForwardDiff.gradient(f, x);
+    loss, back = Zygote.pullback(x -> f(x), p)
+    G .= back(one(loss))[1]
+end
 
 # G = zeros(size(p));
 # loss = f(p)
@@ -182,7 +183,7 @@ end
 #     global pp
 #     res = optimize(f, g!, pp,
 #                     BFGS(),
-#                     Optim.Options(g_tol=1e-12, iterations=5,
+#                     Optim.Options(g_tol=1e-12, iterations=20,
 #                                   store_trace=true, show_trace=true))
 #     pp = res.minimizer
 #     loss = f(pp)

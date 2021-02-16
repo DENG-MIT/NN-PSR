@@ -72,7 +72,7 @@ while solver.successful() and solver.t < t_end:
 print("PSR integration has done!")
 
 ind_start = 2500
-ind_stop = 2600
+ind_stop = 3000
 
 Y = states.Y[:, i_var].T
 
