@@ -71,10 +71,10 @@ while solver.successful() and solver.t < t_end:
 
 print("PSR integration has done!")
 
-ind_start = 2500
+ind_start = 1500
 ind_stop = 3000
 
-Y = states.Y[:, i_var].T
+Y = states.Y[:, :].T
 
 nodedata = np.vstack((states.t - states.t[ind_start], states.T, Y)).T #states.P / ct.one_atm, 
 np.savetxt('data_T.txt', nodedata[ind_start:ind_stop, :])
@@ -83,8 +83,8 @@ np.savetxt('data_T.txt', nodedata[ind_start:ind_stop, :])
 try:
     import matplotlib.pyplot as plt
     L1 = plt.plot(states.t, states.T, color='r', label='T', lw=2)
-    plt.xlim([2.50, 3])
-    plt.ylim([1200, 1300])
+    # plt.xlim([0, 3])
+    # plt.ylim([1200, 1300])
     plt.xlabel('time (s)')
     plt.ylabel('Temperature (K)')
     plt.twinx()
