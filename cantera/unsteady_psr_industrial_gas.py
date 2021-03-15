@@ -35,8 +35,8 @@ class ReactorOde(object):
         return np.hstack((dTdt, dYdt))
 
 
-gas = ct.Solution('gri30.xml')
-gas_ini = ct.Solution('gri30.xml')
+gas = ct.Solution('CH4_Kazakov_s22r104.yaml')
+gas_ini = ct.Solution('CH4_Kazakov_s22r104.yaml')
 # Initial condition
 # P = 25*133.322  #Pa
 # gas.TPX = 800, P, 'H2:0.5,CO:49.5,O2:50'

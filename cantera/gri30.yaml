@@ -1022,7 +1022,7 @@ reactions:
   type: falloff
   low-P-rate-constant: {A: 6.02e+14, b: 0.0, Ea: 3000.0}
   high-P-rate-constant: {A: 1.8e+10, b: 0.0, Ea: 2385.0}
-  Troe: {A: 1.e-12, T3: 1.e-12, T1: 1.e-12, T2: 1.e-12}
+  Troe: {A: 1.e-20, T3: 1.e-20, T1: 1.e-20, T2: 1.e-20}
   efficiencies: {H2: 2.0, O2: 6.0, H2O: 6.0, CH4: 2.0, CO: 1.5, CO2: 3.5,
     C2H6: 3.0, AR: 0.5}
 - equation: O + HCO <=> OH + CO  # Reaction 13
@@ -1481,7 +1481,7 @@ reactions:
   type: falloff
   low-P-rate-constant: {A: 6.37e+14, b: 0.0, Ea: 5.664e+04}
   high-P-rate-constant: {A: 7.91e+10, b: 0.0, Ea: 5.602e+04}
-  Troe: {A: 1.e-12, T3: 1.e-12, T1: 1.e-12, T2: 1.e-12}
+  Troe: {A: 1.e-20, T3: 1.e-20, T1: 1.e-20, T2: 1.e-20}
   efficiencies: {H2: 2.0, H2O: 6.0, CH4: 2.0, CO: 1.5, CO2: 2.0, C2H6: 3.0,
     AR: 0.625}
 - equation: HO2 + NO <=> NO2 + OH  # Reaction 186
@@ -1605,7 +1605,7 @@ reactions:
   type: falloff
   low-P-rate-constant: {A: 1.4e+26, b: -3.4, Ea: 1900.0}
   high-P-rate-constant: {A: 3.3e+13, b: 0.0, Ea: 0.0}
-  Troe: {A: 1.e-12, T3: 1.e-12, T1: 1.e-12, T2: 1.e-12}
+  Troe: {A: 1.e-20, T3: 1.e-20, T1: 1.e-20, T2: 1.e-20}
   efficiencies: {H2: 2.0, H2O: 6.0, CH4: 2.0, CO: 1.5, CO2: 2.0, C2H6: 3.0,
     AR: 0.7}
 - equation: H2CN + N <=> N2 + CH2  # Reaction 238

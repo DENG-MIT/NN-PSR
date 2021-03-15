@@ -10,7 +10,9 @@ using DiffEqSensitivity
 using Sundials
 using Plots
 using DelimitedFiles
-using Profile
+using Flux
+using Flux.Optimise: update!
+using Flux.Losses: mae
 
 # Load cantera data for comparision
 cantera_data = readdlm("cantera/data_T.txt");
@@ -19,7 +21,7 @@ ct_T = cantera_data[:, 2];
 ct_Y = cantera_data[:, 3:end];
 
 # Arrhenius.jl
-gas = CreateSolution("./cantera/cantera/CH4_Kazakov_s22r104.yaml");
+gas = CreateSolution("./cantera/CH4_Kazakov_s22r104.yaml");
 ns = gas.n_species;
 
 # Load inlet conditions
@@ -98,11 +100,42 @@ pltsum = plot(
 );
 png(pltsum, "figs/PSR.png");
 
+
+nn_Tin = Chain(x -> x,
+              Dense(1, 5, tanh),
+              Dense(5, 1))
+p, re = Flux.destructure(nn_Tin);
+
+# If we have multiple Neural Network, we can concat them
+@inbounds function nndudt!(du, u, p, t)
+    local Tin = re(p)([t])[1] + 300.0
+    local Ta = 760.0  # 760.0
+    local Q = 8.e2 # 8.e2
+    local tres = 1.0 # 1.0
+    T = u[end]
+    Y = @view(u[1:ns])
+    mean_MW = 1.0 / dot(Y, 1 ./ gas.MW)
+    ρ_mass = P / R / T * mean_MW
+    X = Y2X(gas, Y, mean_MW)
+    C = Y2C(gas, Y, ρ_mass)
+    cp_mole, cp_mass = get_cp(gas, T, X, mean_MW)
+    h_mole = get_H(gas, T, Y, X)
+    S0 = get_S(gas, T, P, X)
+    wdot = wdot_func(gas.reaction, T, C, S0, h_mole)
+    Ydot = @. wdot / ρ_mass * gas.MW + (Yin - Y) / tres
+    Tdot =
+        -dot(h_mole, wdot) / ρ_mass / cp_mass +
+        (Tin - T) / tres +
+        Q * (Ta - T) / ρ_mass / cp_mass
+    du .= vcat(Ydot, Tdot)
+end
+probnn = ODEProblem(nndudt!, u0, tspan, p);
+
 # Compute the gradient of state variable to PSR parameters
-sensealg = ForwardSensitivity(autojacvec = true)
+sensealg = ForwardDiffSensitivity()
 function fsol(p)
     sol = solve(
-        prob,
+        probnn,
         p = p,
         TRBDF2(),
         tspan = [0.0, 0.5],
