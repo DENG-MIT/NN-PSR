@@ -1,12 +1,19 @@
+import argparse
+
 import cantera as ct
-import torch
 import numpy as np
-
 import reactorch as rt
+import torch
 
-import json
+parser = argparse.ArgumentParser()
 
-mech_yaml = 'CH4_Kazakov_s22r104.yaml'
+parser.add_argument('-i', '--yaml', required=True, help="yaml mech file")
+
+args = parser.parse_args()
+
+print(f'Processing mechanism {args.yaml}')
+
+mech_yaml = args.yaml
 
 sol = rt.Solution(mech_yaml=mech_yaml, device=torch.device('cpu'),
                   vectorize=True,
@@ -31,14 +38,7 @@ if len(sol.list_reaction_type4_Troe) == 0:
              is_reversible=sol.is_reversible,
              Arrhenius_coeffs=Arrhenius_coeffs,
              efficiencies_coeffs=efficiencies_coeffs,
-             # Arrhenius_A0=sol.Arrhenius_A0,
-             # Arrhenius_b0=sol.Arrhenius_b0,
-             # Arrhenius_Ea0=sol.Arrhenius_Ea0,
-             # Troe_A=sol.Troe_A,
-             # Troe_T1=sol.Troe_T1,
-             # Troe_T2=sol.Troe_T2,
-             # Troe_T3=sol.Troe_T3
-             )
+    )
 else:
     np.savez(mech_yaml,
              molecular_weights=molecular_weights,
@@ -55,4 +55,4 @@ else:
              Troe_T1=sol.Troe_T1,
              Troe_T2=sol.Troe_T2,
              Troe_T3=sol.Troe_T3
-             )
+    )

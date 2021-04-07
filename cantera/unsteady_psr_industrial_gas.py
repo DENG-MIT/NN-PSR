@@ -13,13 +13,12 @@ class ReactorOde(object):
         # tres, ta, q, etc.
         self.yin = gas_ini.Y
         self.tin = gas_ini.T
-        self.Q = 8e2
-        self.ta = 760
+        self.Q = 1000
+        self.ta = 873
         self.tres = 1.0
 
     def __call__(self, t, y):
         """the ODE function, y' = f(t,y) """
-
         # State vector is [T, Y_1, Y_2, ... Y_K]
         self.gas.set_unnormalized_mass_fractions(y[1:])
         self.gas.TP = y[0], self.P
@@ -30,29 +29,35 @@ class ReactorOde(object):
         dTdt = (self.tin-self.gas.T)/self.tres + \
                self.Q*(self.ta-self.gas.T)/(rho*self.gas.cp) - \
                (np.dot(self.gas.partial_molar_enthalpies,wdot)/(rho*self.gas.cp))
-
-
         return np.hstack((dTdt, dYdt))
 
+# For gri30, Q=1000, Ta=873
+# mech = "gri30.yaml"
 
-gas = ct.Solution('CH4_Kazakov_s22r104.yaml')
-gas_ini = ct.Solution('CH4_Kazakov_s22r104.yaml')
+mech = "CH4_Kazakov_without_NOx.yaml"
+gas = ct.Solution(mech)
+gas_ini = ct.Solution(mech)
+
 # Initial condition
-# P = 25*133.322  #Pa
-# gas.TPX = 800, P, 'H2:0.5,CO:49.5,O2:50'
-P = 101325  #Pa
-gas.TPX = 300, P, 'H2:9.5023,CO:1.7104,CH4:5.7014,O2:17.0090,N2:66.0769'
+T0 = 300
+P  = 1.0*ct.one_atm  #Pa
+phi = 1
+fuel= "H2:0.5,CO:0.09,CH4:0.3,N2:0.11"
+air = "O2:1,N2:3.76"
+gas.set_equivalence_ratio(phi, fuel, air)
+gas.TP = T0, P
 
 i_var = [gas.species_index(s) for s in ['H2', 'CO', 'CH4', 'O2', 'N2', 'CO2']]
 Yin = gas.Y[i_var]
 TYin = np.append(gas.T, Yin)
-# TYin = np.append(TYin, states.T[ind_start])
 np.savetxt('TYin.txt', TYin)
 
 gas.equilibrate('HP', solver='gibbs')
 y0 = np.hstack((gas.T, gas.Y))
-gas_ini.TPX = 300, P, 'H2:9.5023,CO:1.7104,CH4:5.7014,O2:17.0090,N2:66.0769'
 
+
+gas_ini.set_equivalence_ratio(phi, fuel, air)
+gas_ini.TP = T0, P
 # Set up objects representing the ODE and the solver
 ode = ReactorOde(gas_ini)
 solver = scipy.integrate.ode(ode)
@@ -62,7 +67,7 @@ solver.set_initial_value(y0, 0.0)
 # Integrate the equations, keeping T(t) and Y(k,t)
 t_end = 3
 states = ct.SolutionArray(gas, 1, extra={'t': [0.0]})
-dt = 1e-3
+dt = 2.5e-3
 while solver.successful() and solver.t < t_end:
     solver.integrate(solver.t + dt)
     gas.TPY = solver.y[0], P, solver.y[1:]
@@ -71,8 +76,9 @@ while solver.successful() and solver.t < t_end:
 
 print("PSR integration has done!")
 
-ind_start = 1500
-ind_stop = 3000
+t_start, t_stop = 1.5, 2.0
+ind_start = int(t_start / dt)
+ind_stop = int(t_stop / dt)
 
 Y = states.Y[:, :].T
 
