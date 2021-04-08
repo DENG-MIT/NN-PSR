@@ -42,7 +42,8 @@ gas_ini = ct.Solution(mech)
 T0 = 300
 P  = 1.0*ct.one_atm  #Pa
 phi = 1
-fuel= "H2:0.5,CO:0.09,CH4:0.3,N2:0.11"
+fuel= "H2:0.5,  CO:0.09, CH4:0.3,N2:0.11" # COG_1
+# fuel= "H2:0.025,CO:0.225,CH4:0.0,N2:0.75" # BFG
 air = "O2:1,N2:3.76"
 gas.set_equivalence_ratio(phi, fuel, air)
 gas.TP = T0, P
