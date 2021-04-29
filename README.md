@@ -6,7 +6,7 @@ Differentiable Perfect Stirred Reactor Simulation using Arrhenius.jl.
 
 $$
 \begin{align*}
-\frac{dY}{dt} &= \frac{Y_{in}-Y}{\tau_{res}} + S(Y) \\
+\frac{dY}{dt} &= \frac{\pmb Y_{in}-\pmb Y}{\tau_{res}} + \pmb S(\pmb Y) \\
 \frac{dT}{dt} &= \frac{\sum_i q_i R_i}{\rho C_p} - \frac{T-T_{in}}{\tau_{res}} - \frac{Q_{loss}(T-T_a)}{\rho C_p} \\
 \tau_{res} &= \frac{\rho V}{m_a}
 \end{align*}
